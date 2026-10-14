@@ -1,0 +1,52 @@
+name: Test packaged HTML export on macOS
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Record real environment
+        run: |
+          sw_vers
+          uname -m
+          node --version
+          python3 --version
+      - name: Unpack the same Skill ZIP and install test dependencies
+        run: |
+          mkdir -p runtime/installed-skill runtime/ci
+          unzip skill-package/html-export-skill-20261014-r03.zip -d runtime/installed-skill
+          npm install --prefix runtime/ci playwright
+          cd runtime/ci
+          npx playwright install chromium
+          npm list playwright
+      - name: Export both formats and each format separately
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variant in both png-only jpg-only; do
+            case "$variant" in
+              both) formats=png,jpg ;;
+              png-only) formats=png ;;
+              jpg-only) formats=jpg ;;
+            esac
+            node runtime/installed-skill/html-export/scripts/export-html.mjs \
+              --input source/demo.html --out-dir "output/$variant" \
+              --formats "$formats" --selector '#poster' --scale 2 --transparent \
+              --jpeg-background '#ffffff' --jpeg-quality 0.95 --browser chromium \
+              --playwright "$GITHUB_WORKSPACE/runtime/ci/node_modules/playwright/index.mjs"
+          done
+      - name: Decode images and return visual evidence through logs
+        run: |
+          python3 -m venv runtime/ci-python
+          runtime/ci-python/bin/python -m pip install Pillow
+          runtime/ci-python/bin/python run/verify-images.py output
