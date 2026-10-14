@@ -22,6 +22,16 @@ installation, login, ZIP import, and natural-language invocation on a Mac requir
 a separate Mac client test. Chinese text and layout require visual inspection of
 the generated images after the workflow completes.
 
+## Verified result: 2026-10-14
+
+[Run 38532796660](https://github.com/sfruccwt/html-export-macos-test/actions/runs/38532796660)
+passed on macOS 15.7.9 arm64, Node 24.20.0, Playwright 1.64.0, and Chromium
+156.0.8078.4. Both formats and both individual-format requests passed. All images
+were 1280x2400; PNG corners were transparent and JPG corners white. The PNG/JPG
+pair was retrieved from logs and visually checked: Chinese title, embedded image,
+excluded editor and complete footer were correct. The packaged script needed no
+changes. WorkBuddy Mac desktop import and invocation remain untested.
+
 ## References
 
 - [GitHub standard runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
