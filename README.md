@@ -1,3 +1,9 @@
+# r04 automatic dependency setup
+
+Latest run: https://github.com/sfruccwt/html-export-macos-test/actions/runs/38556677653 (success). On macOS 15.7.9 arm64, with Node absent from PATH and fresh dependency/browser caches, the packaged bootstrap installed Node24.21.0, Playwright1.64.0 and Chromium. Second invocation reused all dependencies. Both/png-only/jpg-only image checks passed. WorkBuddy Mac desktop was not tested.
+
+## Earlier r03 results
+
 # HTML export macOS test
 
 Tests the shared `html-export-skill-20261014-r03.zip` on a standard GitHub macOS
