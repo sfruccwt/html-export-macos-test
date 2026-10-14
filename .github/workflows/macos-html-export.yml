@@ -11,24 +11,23 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version: '24'
-          package-manager-cache: false
-      - name: Record real environment
+      - name: Bootstrap without Node on PATH and verify reuse
+        shell: bash
         run: |
+          set -euo pipefail
           sw_vers
           uname -m
-          node --version
-          python3 --version
-      - name: Unpack the same Skill ZIP and install test dependencies
-        run: |
-          mkdir -p runtime/installed-skill runtime/ci
-          unzip skill-package/html-export-skill-20261014-r03.zip -d runtime/installed-skill
-          npm install --prefix runtime/ci playwright
-          cd runtime/ci
-          npx playwright install chromium
-          npm list playwright
+          mkdir -p runtime/installed-skill
+          unzip skill-package/html-export-skill-20261014-r04.zip -d runtime/installed-skill
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/html-export-browsers"
+          export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+          if command -v node; then echo 'Node unexpectedly accessible'; exit 1; fi
+          setup=runtime/installed-skill/html-export/scripts/setup-macos.sh
+          bash "$setup" --runtime-dir "$GITHUB_WORKSPACE/runtime/auto" --browser chromium
+          cp runtime/auto/node-setup.json runtime/first-node.json
+          cp runtime/auto/setup-receipt.json runtime/first-setup.json
+          bash "$setup" --runtime-dir "$GITHUB_WORKSPACE/runtime/auto" --browser chromium
+          runtime/auto/node/bin/node -e 'const fs=require("fs"),read=p=>JSON.parse(fs.readFileSync(p));if(read("runtime/first-node.json").action!=="installed"||read("runtime/auto/node-setup.json").action!=="reused")throw Error("Node install/reuse failed");const first=read("runtime/first-setup.json"),second=read("runtime/auto/setup-receipt.json");if(!first.installed.includes("playwright")||!first.installed.includes("chromium")||second.installed.length)throw Error("Dependency install/reuse failed");console.log(JSON.stringify({firstNode:read("runtime/first-node.json"),secondNode:read("runtime/auto/node-setup.json"),first,second},null,2))'
       - name: Export both formats and each format separately
         shell: bash
         run: |
@@ -39,11 +38,11 @@ jobs:
               png-only) formats=png ;;
               jpg-only) formats=jpg ;;
             esac
-            node runtime/installed-skill/html-export/scripts/export-html.mjs \
+            runtime/auto/node/bin/node runtime/installed-skill/html-export/scripts/export-html.mjs \
               --input source/demo.html --out-dir "output/$variant" \
               --formats "$formats" --selector '#poster' --scale 2 --transparent \
-              --jpeg-background '#ffffff' --jpeg-quality 0.95 --browser chromium \
-              --playwright "$GITHUB_WORKSPACE/runtime/ci/node_modules/playwright/index.mjs"
+              --jpeg-background '#ffffff' --jpeg-quality 0.95 \
+              --runtime-config "$GITHUB_WORKSPACE/runtime/auto/runtime.json"
           done
       - name: Decode images and return visual evidence through logs
         run: |
