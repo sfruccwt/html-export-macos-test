@@ -18,34 +18,31 @@ jobs:
           sw_vers
           uname -m
           mkdir -p runtime/installed-skill
-          unzip skill-package/html-export-skill-20261014-r04.zip -d runtime/installed-skill
-          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/html-export-browsers"
+          unzip skill-package/html-export-skill-20261016-r06.zip -d runtime/installed-skill
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/html-export-browsers-r06"
           export PATH=/usr/bin:/bin:/usr/sbin:/sbin
           if command -v node; then echo 'Node unexpectedly accessible'; exit 1; fi
           setup=runtime/installed-skill/html-export/scripts/setup-macos.sh
-          bash "$setup" --runtime-dir "$GITHUB_WORKSPACE/runtime/auto" --browser chromium
-          cp runtime/auto/node-setup.json runtime/first-node.json
-          cp runtime/auto/setup-receipt.json runtime/first-setup.json
-          bash "$setup" --runtime-dir "$GITHUB_WORKSPACE/runtime/auto" --browser chromium
-          runtime/auto/node/bin/node -e 'const fs=require("fs"),read=p=>JSON.parse(fs.readFileSync(p));if(read("runtime/first-node.json").action!=="installed"||read("runtime/auto/node-setup.json").action!=="reused")throw Error("Node install/reuse failed");const first=read("runtime/first-setup.json"),second=read("runtime/auto/setup-receipt.json");if(!first.installed.includes("playwright")||!first.installed.includes("chromium")||second.installed.length)throw Error("Dependency install/reuse failed");console.log(JSON.stringify({firstNode:read("runtime/first-node.json"),secondNode:read("runtime/auto/node-setup.json"),first,second},null,2))'
-      - name: Export both formats and each format separately
+          cache="$HOME/Library/Caches/html-export"
+          bash "$setup" --browser chromium
+          cp "$cache/node-setup.json" runtime/first-node.json
+          cp "$cache/setup-receipt.json" runtime/first-setup.json
+          bash "$setup" --browser chromium
+          "$cache/node/bin/node" -e 'const fs=require("fs"),read=p=>JSON.parse(fs.readFileSync(p)),cache=process.argv[1];const firstNode=read("runtime/first-node.json"),secondNode=read(cache+"/node-setup.json"),first=read("runtime/first-setup.json"),second=read(cache+"/setup-receipt.json");if(firstNode.action!=="installed"||secondNode.action!=="reused"||!first.installed.includes("playwright")||!first.installed.includes("chromium")||second.installed.length)throw Error("Dependency install/reuse failed");console.log(JSON.stringify({firstNode,secondNode,first,second},null,2))' "$cache"
+      - name: Export with default macOS cache and fixed verification
         shell: bash
         run: |
           set -euo pipefail
+          node="$HOME/Library/Caches/html-export/node/bin/node"
           for variant in both png-only jpg-only; do
             case "$variant" in
               both) formats=png,jpg ;;
               png-only) formats=png ;;
               jpg-only) formats=jpg ;;
             esac
-            runtime/auto/node/bin/node runtime/installed-skill/html-export/scripts/export-html.mjs \
+            "$node" runtime/installed-skill/html-export/scripts/export-html.mjs \
               --input source/demo.html --out-dir "output/$variant" \
               --formats "$formats" --selector '#poster' --scale 2 --transparent \
-              --jpeg-background '#ffffff' --jpeg-quality 0.95 \
-              --runtime-config "$GITHUB_WORKSPACE/runtime/auto/runtime.json"
+              --jpeg-background '#ffffff' --jpeg-quality 0.95
           done
-      - name: Decode images and return visual evidence through logs
-        run: |
-          python3 -m venv runtime/ci-python
-          runtime/ci-python/bin/python -m pip install Pillow
-          runtime/ci-python/bin/python run/verify-images.py output
+          "$node" run/check-r06-receipts.mjs
