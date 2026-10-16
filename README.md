@@ -1,4 +1,8 @@
-# r04 automatic dependency setup
+# r06 fixed verification and default macOS cache
+
+Latest run: https://github.com/sfruccwt/html-export-macos-test/actions/runs/38853214077 (success), tested commit 409612d. The exact r06 package passed on macOS 15.7.9 arm64, Node 24.22.0, Playwright 1.64.0, Chromium 156.0.8078.4. Bootstrap installed dependencies once and reused them on the second invocation. All three exports discovered the default macOS runtime cache without an explicit configuration argument. Both/png-only/jpg-only passed the package's built-in checks in 1.411/0.999/0.813 seconds. The CI asserts receipts and requested formats without installing Pillow. WorkBuddy Mac desktop was not tested.
+
+## Earlier r04 automatic dependency setup
 
 Latest run: https://github.com/sfruccwt/html-export-macos-test/actions/runs/38556677653 (success). On macOS 15.7.9 arm64, with Node absent from PATH and fresh dependency/browser caches, the packaged bootstrap installed Node24.21.0, Playwright1.64.0 and Chromium. Second invocation reused all dependencies. Both/png-only/jpg-only image checks passed. WorkBuddy Mac desktop was not tested.
 
