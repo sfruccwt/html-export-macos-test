@@ -1,0 +1,31 @@
+name: Test r10 deployment and both export scripts on macOS
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Deploy exact package on fresh Mac
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -m
+          mkdir -p runtime/installed-skill
+          unzip skill-package/html-export-skill-20261016-r10.zip -d runtime/installed-skill
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/html-export-browsers-r10"
+          export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+          bash runtime/installed-skill/html-export/scripts/setup-macos.sh --browser chromium
+      - name: Use deployed config for HTML and native download
+        shell: bash
+        run: |
+          set -euo pipefail
+          node_bin=$(/usr/bin/plutil -extract nodeExecutable raw -o - "$HOME/Library/Caches/html-export/runtime.json")
+          "$node_bin" run/test-r08.mjs
+          "$node_bin" run/test-native-download.mjs
