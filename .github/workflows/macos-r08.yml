@@ -1,0 +1,29 @@
+name: Test r08 HTML and URL export on macOS
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare fresh runner runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -m
+          mkdir -p runtime/installed-skill
+          unzip skill-package/html-export-skill-20261016-r08.zip -d runtime/installed-skill
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/html-export-browsers-r08"
+          export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+          bash runtime/installed-skill/html-export/scripts/setup-macos.sh --browser chromium
+      - name: Test local HTML, URL resources and error routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$HOME/Library/Caches/html-export/node/bin/node" run/test-r08.mjs
